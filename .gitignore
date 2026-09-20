@@ -1,0 +1,14 @@
+# macOS
+.DS_Store
+
+# Xcode
+xcuserdata/
+*.xcuserstate
+DerivedData/
+
+# Oh My Pi local state (keep speckit commands for contributors)
+.omp/*
+!.omp/commands/
+
+# Spec Kit local artifacts
+.specify/specs/
