@@ -9,6 +9,7 @@ struct ContentView: View {
     @State private var selectedID: UUID?
     @State private var completedExpanded = false
     @State private var editingTask: TaskItem?
+    @Environment(\.openWindow) private var openWindow
 
     private var incomplete: [TaskItem] { store.tasks.filter { !$0.isCompleted } }
     private var completed: [TaskItem] { store.tasks.filter { $0.isCompleted } }
@@ -24,6 +25,9 @@ struct ContentView: View {
             }
         }
         .frame(minWidth: 480, minHeight: 360)
+        .onAppear {
+            QuickWindowRouter.open = { openWindow(id: "quick-capture") }
+        }
         .sheet(item: $editingTask) { task in
             EditTaskSheet(task: task) {
                 try? store.save()
