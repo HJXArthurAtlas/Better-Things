@@ -9,6 +9,9 @@ DerivedData/
 # SwiftPM
 .build/
 
+# 构建产物
+*.dmg
+
 # Oh My Pi local state (keep speckit commands for contributors)
 .omp/*
 !.omp/commands/
