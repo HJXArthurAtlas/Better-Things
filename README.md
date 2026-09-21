@@ -63,8 +63,11 @@ Better Things 拖入 Applications 即可。
 
 ### 数据存储
 
-所有任务保存在本机 `~/Library/Application Support/default.store`（SwiftData 数据库），
-不联网、不上传。删除该目录即彻底重置数据。
+所有任务保存在本机 `~/Library/Application Support/Better Things/store.sqlite`
+（SwiftData 数据库），不联网、不上传。删除该目录即彻底重置数据。
+
+从 0.1.0 更早版本升级时，旧数据（`~/Library/Application Support/default.store`）
+会自动迁移到新位置，旧文件保留不动。
 
 ## 开发
 

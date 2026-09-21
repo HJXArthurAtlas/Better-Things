@@ -112,7 +112,7 @@ struct TaskStoreTests {
         #expect(store.tasks.map(\.title) == ["open"])
 
         #expect(store.undoLastDelete())
-        #expect(store.tasks.map(\.title) == ["open", "done"])
+        #expect(store.tasks.first?.title == "open")  // 倒序不变
         let back = store.tasks.first { $0.title == "done" }
         #expect(back?.id == originalID)
         #expect(back?.isCompleted == true)
@@ -123,6 +123,55 @@ struct TaskStoreTests {
     func undoOnEmptyStack() throws {
         let store = try TaskStore(inMemory: true)
         #expect(store.undoLastDelete() == false)
+    }
+
+    // MARK: 旧库迁移（BT-21）
+
+    @Test("旧 default.store 数据自动迁移到新位置且旧文件保留")
+    func legacyMigration() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let legacyURL = dir.appendingPathComponent("default.store")
+        let newURL = dir.appendingPathComponent("store.sqlite")
+
+        // 造旧库：两条任务，其一完成
+        let old = try TaskStore(url: legacyURL)
+        let done = old.add(title: "迁移-已完成")
+        done.complete(at: Date(timeIntervalSince1970: 800))
+        seed(old, "迁移-未完成", 100)
+        try old.save()
+        let legacyMtimeBefore = try FileManager.default.attributesOfItem(atPath: legacyURL.path)[.modificationDate] as? Date
+
+        // 迁移函数：旧库 → 新库
+        TaskStore.migrateLegacyStoreIfAvailable(from: legacyURL, into: newURL)
+
+        let migrated = try TaskStore(url: newURL)
+        // 倒序：迁移-已完成 创建时间晚于受控的 100
+        #expect(migrated.tasks.map(\.title) == ["迁移-已完成", "迁移-未完成"])
+        let migratedDone = migrated.tasks.first { $0.title == "迁移-已完成" }
+        #expect(migratedDone?.isCompleted == true)
+        #expect(migratedDone?.completedAt == Date(timeIntervalSince1970: 800))
+        // 旧文件原样保留（防回滚）
+        #expect(FileManager.default.fileExists(atPath: legacyURL.path))
+        let legacyMtimeAfter = try FileManager.default.attributesOfItem(atPath: legacyURL.path)[.modificationDate] as? Date
+        #expect(legacyMtimeBefore == legacyMtimeAfter)
+        // 幂等：再次迁移不重复插入
+        TaskStore.migrateLegacyStoreIfAvailable(from: legacyURL, into: newURL)
+        let afterSecondCall = try TaskStore(url: newURL)
+        #expect(afterSecondCall.tasks.count == 2)
+    }
+
+    @Test("无旧库时迁移为空操作（BT-21 边界）")
+    func migrationWithoutLegacy() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let legacyURL = dir.appendingPathComponent("default.store")  // 不存在的旧库
+        let newURL = dir.appendingPathComponent("store.sqlite")
+        TaskStore.migrateLegacyStoreIfAvailable(from: legacyURL, into: newURL)
+        let store = try TaskStore(url: newURL)
+        #expect(store.tasks.isEmpty)
     }
 
     // MARK: US3 — 打开即加载 / 内存模式

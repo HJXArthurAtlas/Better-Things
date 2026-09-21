@@ -16,9 +16,22 @@ public final class TaskStore {
 
     private var context: ModelContext { container.mainContext }
 
-    /// 应用默认存储位置
+    /// 应用默认存储位置（应用专属命名，BT-21）
+    public static func defaultStoreURL() throws -> URL {
+        let base = try FileManager.default.url(
+            for: .applicationSupportDirectory, in: .userDomainMask,
+            appropriateFor: nil, create: true
+        )
+        let directory = base.appendingPathComponent("Better Things", isDirectory: true)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return directory.appendingPathComponent("store.sqlite")
+    }
+
+    /// 应用默认位置；首次使用时自动迁移旧版 default.store 数据（旧文件保留不动）
     public convenience init() throws {
-        try self.init(configuration: ModelConfiguration())
+        let url = try Self.defaultStoreURL()
+        Self.migrateLegacyStoreIfAvailable(into: url)
+        try self.init(configuration: ModelConfiguration(url: url))
     }
 
     /// 内存模式（测试/预览，不触碰磁盘）；传 false 等价默认位置
@@ -103,5 +116,46 @@ public final class TaskStore {
 
     private func load() {
         refresh()
+    }
+
+    /// 旧版共享库名（SwiftData 默认位置，BT-21 之前的存储）
+    static func legacyStoreURL() -> URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("default.store")
+    }
+
+    /// 若旧存储存在且新位置尚无数据，将其内容复制到新库。
+    /// 旧文件原样保留（防回滚）；任何一步失败都静默跳过，应用以空库继续。
+    /// - Parameters:
+    ///   - legacyURL: 旧存储位置，默认为 SwiftData 共享库名（BT-21 之前的存储）
+    ///   - newURL: 应用专属新存储位置
+    static func migrateLegacyStoreIfAvailable(
+        from legacyURL: URL = legacyStoreURL(),
+        into newURL: URL
+    ) {
+        guard FileManager.default.fileExists(atPath: legacyURL.path) else { return }
+        // 新库文件已存在即视为已迁移，避免重复插入
+        guard !FileManager.default.fileExists(atPath: newURL.path) else { return }
+        guard let legacyContainer = try? ModelContainer(
+            for: TaskItem.self,
+            configurations: ModelConfiguration(url: legacyURL)
+        ) else { return }
+        let legacyContext = ModelContext(legacyContainer)
+        guard let legacyTasks = try? legacyContext.fetch(FetchDescriptor<TaskItem>()),
+              !legacyTasks.isEmpty else { return }
+        guard let newContainer = try? ModelContainer(
+            for: TaskItem.self,
+            configurations: ModelConfiguration(url: newURL)
+        ) else { return }
+        let newContext = ModelContext(newContainer)
+        for task in legacyTasks {
+            let copy = TaskItem(title: task.title, note: task.note, createdAt: task.createdAt)
+            copy.id = task.id
+            if task.isCompleted {
+                copy.complete(at: task.completedAt ?? .now)
+            }
+            newContext.insert(copy)
+        }
+        try? newContext.save()
     }
 }
