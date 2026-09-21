@@ -6,6 +6,9 @@ xcuserdata/
 *.xcuserstate
 DerivedData/
 
+# SwiftPM
+.build/
+
 # Oh My Pi local state (keep speckit commands for contributors)
 .omp/*
 !.omp/commands/

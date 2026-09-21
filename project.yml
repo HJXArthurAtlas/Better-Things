@@ -1,0 +1,21 @@
+name: Better-Things
+options:
+  bundleIdPrefix: com.betterthings
+  deploymentTarget:
+    macOS: "15.0"
+packages:
+  BetterThingsKit:
+    path: .
+targets:
+  Better Things:
+    type: application
+    platform: macOS
+    sources:
+      - App
+    dependencies:
+      - package: BetterThingsKit
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Better Things
+        CFBundleShortVersionString: "0.1.0"
