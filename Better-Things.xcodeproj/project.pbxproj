@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5A9118765A16A947F15286C4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3A5EB9D310E8C91A31B2B282 /* Assets.xcassets */; };
 		71543E02F854113B6EB87F6B /* TaskRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5DAFBD91D580F891ADCC805 /* TaskRow.swift */; };
 		718F733B2775C7EA0A5EBED9 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEFD36B2EC0242553C1DEC8 /* ContentView.swift */; };
 		73451F69C18BAE18F23083E5 /* BetterThingsKit in Frameworks */ = {isa = PBXBuildFile; productRef = C7E5489D31D3995D9DCBEA8A /* BetterThingsKit */; };
@@ -19,6 +20,7 @@
 		076C77E336BEA1E9EF04DF2A /* BetterThingsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BetterThingsApp.swift; sourceTree = "<group>"; };
 		0CEFD36B2EC0242553C1DEC8 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		1131AB6CA3E5F29D3ECBD5A9 /* EditTaskSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditTaskSheet.swift; sourceTree = "<group>"; };
+		3A5EB9D310E8C91A31B2B282 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		7CB02F6563BF71FA5400DDBB /* Better-Things */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "Better-Things"; path = .; sourceTree = SOURCE_ROOT; };
 		BADCC176B3BBB07689B0AEE2 /* QuickCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickCaptureView.swift; sourceTree = "<group>"; };
 		CA978BD8B50B10395EC53266 /* Better Things.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Better Things.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -58,6 +60,7 @@
 		A3DC8A8C30163CDC23CC9A26 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				3A5EB9D310E8C91A31B2B282 /* Assets.xcassets */,
 				076C77E336BEA1E9EF04DF2A /* BetterThingsApp.swift */,
 				0CEFD36B2EC0242553C1DEC8 /* ContentView.swift */,
 				1131AB6CA3E5F29D3ECBD5A9 /* EditTaskSheet.swift */,
@@ -84,6 +87,7 @@
 			buildConfigurationList = 174594EF4ABA8D4554E8A173 /* Build configuration list for PBXNativeTarget "Better Things" */;
 			buildPhases = (
 				86C6E8705164529F21CB0E4F /* Sources */,
+				F6026A84A225B0737D83E8A3 /* Resources */,
 				286748ECC32CBA6FD47F9550 /* Frameworks */,
 			);
 			buildRules = (
@@ -130,6 +134,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F6026A84A225B0737D83E8A3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5A9118765A16A947F15286C4 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		86C6E8705164529F21CB0E4F /* Sources */ = {

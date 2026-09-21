@@ -20,5 +20,7 @@
 	<string>0.1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>© 2026 Better Things Contributors (MIT License)</string>
 </dict>
 </plist>
