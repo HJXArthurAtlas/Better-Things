@@ -7,14 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		71543E02F854113B6EB87F6B /* TaskRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5DAFBD91D580F891ADCC805 /* TaskRow.swift */; };
+		718F733B2775C7EA0A5EBED9 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEFD36B2EC0242553C1DEC8 /* ContentView.swift */; };
 		73451F69C18BAE18F23083E5 /* BetterThingsKit in Frameworks */ = {isa = PBXBuildFile; productRef = C7E5489D31D3995D9DCBEA8A /* BetterThingsKit */; };
+		CD39FB46BB035C48C6CC28BB /* EditTaskSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1131AB6CA3E5F29D3ECBD5A9 /* EditTaskSheet.swift */; };
 		DB935D9ED03B2CDFA120D3CA /* BetterThingsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 076C77E336BEA1E9EF04DF2A /* BetterThingsApp.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		076C77E336BEA1E9EF04DF2A /* BetterThingsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BetterThingsApp.swift; sourceTree = "<group>"; };
+		0CEFD36B2EC0242553C1DEC8 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		1131AB6CA3E5F29D3ECBD5A9 /* EditTaskSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditTaskSheet.swift; sourceTree = "<group>"; };
 		7CB02F6563BF71FA5400DDBB /* Better-Things */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "Better-Things"; path = .; sourceTree = SOURCE_ROOT; };
 		CA978BD8B50B10395EC53266 /* Better Things.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Better Things.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E5DAFBD91D580F891ADCC805 /* TaskRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskRow.swift; sourceTree = "<group>"; };
 		E7E596E0D23EB3E13E5100A4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -51,7 +57,10 @@
 			isa = PBXGroup;
 			children = (
 				076C77E336BEA1E9EF04DF2A /* BetterThingsApp.swift */,
+				0CEFD36B2EC0242553C1DEC8 /* ContentView.swift */,
+				1131AB6CA3E5F29D3ECBD5A9 /* EditTaskSheet.swift */,
 				E7E596E0D23EB3E13E5100A4 /* Info.plist */,
+				E5DAFBD91D580F891ADCC805 /* TaskRow.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -125,6 +134,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				DB935D9ED03B2CDFA120D3CA /* BetterThingsApp.swift in Sources */,
+				718F733B2775C7EA0A5EBED9 /* ContentView.swift in Sources */,
+				CD39FB46BB035C48C6CC28BB /* EditTaskSheet.swift in Sources */,
+				71543E02F854113B6EB87F6B /* TaskRow.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

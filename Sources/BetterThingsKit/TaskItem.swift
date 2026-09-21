@@ -17,6 +17,8 @@ public final class TaskItem {
     public var isCompleted: Bool = false
     /// 完成时间（未完成时为空）
     public var completedAt: Date? = nil
+    /// 通用唯一标识（App 侧选中态的可持有标识，非持久化框架类型）
+    public var id = UUID()
 
     public init(title: String, note: String? = nil, createdAt: Date = .now) {
         self.title = title

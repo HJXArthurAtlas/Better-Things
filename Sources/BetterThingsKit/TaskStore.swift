@@ -42,19 +42,56 @@ public final class TaskStore {
         let task = TaskItem(title: title, note: note)
         context.insert(task)
         refresh()
+        persist()
         return task
     }
 
-    /// 删除任务
+    /// 删除任务（快照入撤销栈，可 undoLastDelete 恢复）
     public func delete(_ task: TaskItem) {
+        let snapshot = DeleteSnapshot(
+            id: task.id, title: task.title, note: task.note, createdAt: task.createdAt,
+            isCompleted: task.isCompleted, completedAt: task.completedAt
+        )
         context.delete(task)
+        deletedStack.append(snapshot)
         refresh()
+        persist()
     }
 
-    /// 显式保存（应用运行时另有自动保存兜底）
+    /// 撤销最近一次删除：按快照原样重建（含 id 与完成状态）。返回是否发生了恢复。
+    @discardableResult
+    public func undoLastDelete() -> Bool {
+        guard let snapshot = deletedStack.popLast() else { return false }
+        let restored = TaskItem(title: snapshot.title, note: snapshot.note, createdAt: snapshot.createdAt)
+        restored.id = snapshot.id
+        if snapshot.isCompleted {
+            restored.complete(at: snapshot.completedAt ?? .now)
+        }
+        context.insert(restored)
+        refresh()
+        persist()
+        return true
+    }
+
+    /// 立即落盘（属性级修改如勾选完成、编辑标题后由 UI 层调用）
     public func save() throws {
         try context.save()
     }
+
+    private func persist() {
+        try? context.save()
+    }
+
+    struct DeleteSnapshot {
+        let id: UUID
+        let title: String
+        let note: String?
+        let createdAt: Date
+        let isCompleted: Bool
+        let completedAt: Date?
+    }
+
+    private var deletedStack: [DeleteSnapshot] = []
 
     /// 全量重载：按创建时间倒序
     public func refresh() {

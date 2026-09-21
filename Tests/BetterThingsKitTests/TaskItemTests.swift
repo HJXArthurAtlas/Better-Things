@@ -48,6 +48,11 @@ struct TaskItemTests {
         #expect(task.completedAt == nil)
     }
 
+    @Test("id 全局唯一（004 选中标识契约）")
+    func idUniqueness() {
+        #expect(TaskItem(title: "a").id != TaskItem(title: "b").id)
+    }
+
     // MARK: US3 — 持久化注册
 
     @Test("模型可注册到持久化机制（US3/AC1）")

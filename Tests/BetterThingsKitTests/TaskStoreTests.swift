@@ -99,6 +99,32 @@ struct TaskStoreTests {
         #expect(reopened.tasks.first?.completedAt == nil)
     }
 
+    // MARK: 撤销删除（BT-13/FR-007）
+
+    @Test("删除后撤销恢复原字段")
+    func undoRestoresDeletedFields() throws {
+        let store = try TaskStore(inMemory: true)
+        let done = seed(store, "done", 100)
+        done.complete(at: Date(timeIntervalSince1970: 700))
+        let originalID = done.id
+        seed(store, "open", 200)
+        store.delete(done)
+        #expect(store.tasks.map(\.title) == ["open"])
+
+        #expect(store.undoLastDelete())
+        #expect(store.tasks.map(\.title) == ["open", "done"])
+        let back = store.tasks.first { $0.title == "done" }
+        #expect(back?.id == originalID)
+        #expect(back?.isCompleted == true)
+        #expect(back?.completedAt == Date(timeIntervalSince1970: 700))
+    }
+
+    @Test("空撤销栈返回 false")
+    func undoOnEmptyStack() throws {
+        let store = try TaskStore(inMemory: true)
+        #expect(store.undoLastDelete() == false)
+    }
+
     // MARK: US3 — 打开即加载 / 内存模式
 
     @Test("初始化即自动加载，无需显式调用（US3/AC1）")
