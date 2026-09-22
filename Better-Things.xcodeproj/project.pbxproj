@@ -7,16 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		139D56F0F0866FCE1EAD1815 /* NewListMenu.swift in Sources */ = {isa = PBXBuildFile; fileRef = E987DF8DE70E4D4D9E2235C8 /* NewListMenu.swift */; };
 		5A9118765A16A947F15286C4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3A5EB9D310E8C91A31B2B282 /* Assets.xcassets */; };
 		6AEF87C358CB3DF26A85E9FF /* SectionViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA36529002D7298971278997 /* SectionViews.swift */; };
 		71543E02F854113B6EB87F6B /* TaskRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5DAFBD91D580F891ADCC805 /* TaskRow.swift */; };
 		718F733B2775C7EA0A5EBED9 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CEFD36B2EC0242553C1DEC8 /* ContentView.swift */; };
 		73451F69C18BAE18F23083E5 /* BetterThingsKit in Frameworks */ = {isa = PBXBuildFile; productRef = C7E5489D31D3995D9DCBEA8A /* BetterThingsKit */; };
 		8E4906C065D28AF2DF8682BA /* QuickCaptureView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BADCC176B3BBB07689B0AEE2 /* QuickCaptureView.swift */; };
+		967230EF3F0A831F55B682BC /* ProjectAreaViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA5770F4837728180BA70640 /* ProjectAreaViews.swift */; };
 		CD39FB46BB035C48C6CC28BB /* EditTaskSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1131AB6CA3E5F29D3ECBD5A9 /* EditTaskSheet.swift */; };
+		D7FE276B5BD477E7FAF0249A /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E52F650D69B3B9DA0BCDF3CF /* SearchView.swift */; };
 		DB935D9ED03B2CDFA120D3CA /* BetterThingsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 076C77E336BEA1E9EF04DF2A /* BetterThingsApp.swift */; };
 		E9E34FB3FCCFA5BC401ED36B /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88D1247B2CFD5056D7D2BD77 /* DesignTokens.swift */; };
 		ED93E869F265903B5268B483 /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23C4054B37F2176CBE4B55B1 /* SidebarView.swift */; };
+		F10DAD3419283BAAA73BC2A2 /* MainToolbar.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7CE22F65DCD9486160E0760 /* MainToolbar.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,10 +32,14 @@
 		7CB02F6563BF71FA5400DDBB /* Better-Things */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "Better-Things"; path = .; sourceTree = SOURCE_ROOT; };
 		88D1247B2CFD5056D7D2BD77 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		AA36529002D7298971278997 /* SectionViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SectionViews.swift; sourceTree = "<group>"; };
+		AA5770F4837728180BA70640 /* ProjectAreaViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectAreaViews.swift; sourceTree = "<group>"; };
 		BADCC176B3BBB07689B0AEE2 /* QuickCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickCaptureView.swift; sourceTree = "<group>"; };
+		C7CE22F65DCD9486160E0760 /* MainToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainToolbar.swift; sourceTree = "<group>"; };
 		CA978BD8B50B10395EC53266 /* Better Things.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Better Things.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		E52F650D69B3B9DA0BCDF3CF /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		E5DAFBD91D580F891ADCC805 /* TaskRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskRow.swift; sourceTree = "<group>"; };
 		E7E596E0D23EB3E13E5100A4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		E987DF8DE70E4D4D9E2235C8 /* NewListMenu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NewListMenu.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,7 +80,11 @@
 				88D1247B2CFD5056D7D2BD77 /* DesignTokens.swift */,
 				1131AB6CA3E5F29D3ECBD5A9 /* EditTaskSheet.swift */,
 				E7E596E0D23EB3E13E5100A4 /* Info.plist */,
+				C7CE22F65DCD9486160E0760 /* MainToolbar.swift */,
+				E987DF8DE70E4D4D9E2235C8 /* NewListMenu.swift */,
+				AA5770F4837728180BA70640 /* ProjectAreaViews.swift */,
 				BADCC176B3BBB07689B0AEE2 /* QuickCaptureView.swift */,
+				E52F650D69B3B9DA0BCDF3CF /* SearchView.swift */,
 				AA36529002D7298971278997 /* SectionViews.swift */,
 				23C4054B37F2176CBE4B55B1 /* SidebarView.swift */,
 				E5DAFBD91D580F891ADCC805 /* TaskRow.swift */,
@@ -164,7 +176,11 @@
 				718F733B2775C7EA0A5EBED9 /* ContentView.swift in Sources */,
 				E9E34FB3FCCFA5BC401ED36B /* DesignTokens.swift in Sources */,
 				CD39FB46BB035C48C6CC28BB /* EditTaskSheet.swift in Sources */,
+				F10DAD3419283BAAA73BC2A2 /* MainToolbar.swift in Sources */,
+				139D56F0F0866FCE1EAD1815 /* NewListMenu.swift in Sources */,
+				967230EF3F0A831F55B682BC /* ProjectAreaViews.swift in Sources */,
 				8E4906C065D28AF2DF8682BA /* QuickCaptureView.swift in Sources */,
+				D7FE276B5BD477E7FAF0249A /* SearchView.swift in Sources */,
 				6AEF87C358CB3DF26A85E9FF /* SectionViews.swift in Sources */,
 				ED93E869F265903B5268B483 /* SidebarView.swift in Sources */,
 				71543E02F854113B6EB87F6B /* TaskRow.swift in Sources */,

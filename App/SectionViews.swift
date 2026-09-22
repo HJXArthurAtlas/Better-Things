@@ -17,7 +17,7 @@ struct SectionTitleBar: View {
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 24)
-        .padding(.top, 20)
+        .padding(.top, 69)
         .padding(.bottom, 16)
     }
 }
@@ -41,21 +41,38 @@ struct WatermarkView: View {
 private func makeRow(
     _ task: TaskItem, store: TaskStore, selectedID: Binding<UUID?>,
     dashed: Bool = false, completedDetail: (date: String, source: String)? = nil,
+    expandable: Bool = false, onSchedule: ((TaskItem) -> Void)? = nil,
+    dimmed: Bool = false, isDraft: Bool = false,
+    onEndDraft: @escaping (TaskItem) -> Void = { _ in },
+    onCommit: @escaping () -> Void = {},
     onEdit: @escaping (TaskItem) -> Void
-) -> TaskRowView {
+) -> some View {
     TaskRowView(
         task: task,
         dashedCheckbox: dashed,
         completedDetail: completedDetail,
         isSelected: selectedID.wrappedValue == task.id,
+        expandable: expandable,
+        isDraft: isDraft,
         onToggle: { try? store.save() },
-        onSelect: { selectedID.wrappedValue = task.id },
+        onSelect: {
+            // 单一事务：卡片展开与下方行下移同步（对照 Things 推开动效）
+            withAnimation(cardAnimation) { selectedID.wrappedValue = task.id }
+        },
         onEdit: { onEdit(task) },
         onTrash: { store.trash(task) },
         onRestore: { store.restore(task) },
-        onMove: { store.move(task, to: $0) }
+        onMove: { store.move(task, to: $0) },
+        onSchedule: onSchedule.map { schedule in { schedule(task) } },
+        onEndDraft: onEndDraft,
+        onCommit: onCommit
     )
+    .opacity(dimmed ? 0.5 : 1)
 }
+
+/// 展开卡片列表通用动画（对照 Things ≈0.28s spring）
+@MainActor
+let cardAnimation: Animation = .spring(response: 0.28, dampingFraction: 0.85)
 
 /// 收件箱 / 今天 / 随时 / 以后再说：标题 + 任务行列表 + 空态水印。
 struct TaskListView: View {
@@ -63,6 +80,10 @@ struct TaskListView: View {
     let section: TaskSection
     @Binding var selectedID: UUID?
     let onEdit: (TaskItem) -> Void
+    let onSchedule: (TaskItem) -> Void
+    /// 新建草稿 id（nil = 无草稿）
+    var draftID: UUID? = nil
+    var onEndDraft: (TaskItem) -> Void = { _ in }
 
     private var tasks: [TaskItem] { store.openTasks(in: section) }
 
@@ -78,15 +99,22 @@ struct TaskListView: View {
                         VStack(spacing: 0) {
                             ForEach(tasks, id: \.id) { task in
                                 makeRow(task, store: store, selectedID: $selectedID,
-                                        dashed: section == .someday, onEdit: onEdit)
+                                        dashed: section == .someday, expandable: true,
+                                        onSchedule: onSchedule,
+                                        dimmed: selectedID != nil && task.id != selectedID,
+                                        isDraft: task.id == draftID,
+                                        onEndDraft: onEndDraft,
+                                        onCommit: { try? store.save() },
+                                        onEdit: onEdit)
                             }
                         }
                         .padding(.horizontal, 24)
                         .padding(.bottom, 12)
+                        .animation(cardAnimation, value: selectedID)
                     }
                     .onChange(of: selectedID) { _, newID in
                         guard let newID else { return }
-                        withAnimation { proxy.scrollTo(newID, anchor: .center) }
+                        withAnimation(cardAnimation) { proxy.scrollTo(newID, anchor: .center) }
                     }
                 }
             }

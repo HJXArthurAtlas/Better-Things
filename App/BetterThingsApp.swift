@@ -27,6 +27,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         setupTray()          // BT-15 菜单栏托盘
         setupQuickHotKey()   // BT-16 全局 ⌥Space
+        // 窗口聚焦时应用 Things 式大圆角（SwiftUI 窗口惰性创建，需在回调里补；幂等）。
+        // 内容首次布局晚于 didBecomeKey，系统随后会把红绿灯排回默认位，需延迟数档重贴。
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.didBecomeKeyNotification, object: nil, queue: .main
+        ) { note in
+            guard let window = note.object as? NSWindow else { return }
+            window.applyBetterThingsChrome()
+            for delay in [0.05, 0.3, 1.0] {
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                    window.positionTrafficLightsAtCornerArc()
+                }
+            }
+        }
+        // 窗口 resize 后系统会重排红绿灯，重新对齐弧心
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.didEndLiveResizeNotification, object: nil, queue: .main
+        ) { note in
+            (note.object as? NSWindow)?.positionTrafficLightsAtCornerArc()
+        }
         monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             let editing = NSApp.keyWindow?.firstResponder is NSTextView
             guard !editing else { return event }
@@ -34,11 +53,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case 51:  // ⌫ 删除选中
                 NotificationCenter.default.post(name: .btDeleteSelected, object: nil)
                 return nil
-            case 45 where event.modifierFlags.contains(.command):  // ⌘N 快速录入（拦截，避免触发新建窗口）
-                self.toggleQuickCapture()
+            case 45 where event.modifierFlags.contains(.command):  // ⌘N 列表内新建待办（展开卡片）
+                NotificationCenter.default.post(name: .btCreateInline, object: nil)
                 return nil
             case 6 where event.modifierFlags.contains(.command):  // ⌘Z 撤销删除
                 NotificationCenter.default.post(name: .btUndoDelete, object: nil)
+                return nil
+            case 3 where event.modifierFlags.contains(.command):  // ⌘F 搜索
+                NotificationCenter.default.post(name: .btToggleSearch, object: nil)
                 return nil
             case 125: // ↓
                 NotificationCenter.default.post(
@@ -127,6 +149,43 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
+extension NSWindow {
+    /// Things 式大圆角：窗口底透明 + 内容层连续曲率裁切（公开 API；红绿灯/交互不受影响）。
+    /// 仅作用于本应用的两个窗口，幂等可重复调用。
+    func applyBetterThingsChrome() {
+        guard title == "Better Things" || title == QuickCaptureView.windowTitle else { return }
+        backgroundColor = .clear
+        isOpaque = false
+        contentView?.wantsLayer = true
+        contentView?.layer?.cornerRadius = 24
+        // 实测 Things 的圆角曲线拟合纯圆弧（非超椭圆），用 .circular 精确复刻
+        contentView?.layer?.cornerCurve = .circular
+        contentView?.layer?.masksToBounds = true
+        positionTrafficLightsAtCornerArc()
+        invalidateShadow()
+    }
+
+    /// 红绿灯同心定位（Apple 设计语言）：元素中心与圆角弧心 (R,R) 重合，
+    /// 到上/左边缘距离因此必然相等（= R − 圆半径）；中心距 20pt（12pt 圆 + 8 间隙）。
+    /// 窗口 resize 后系统会重排按钮，需重贴。
+    func positionTrafficLightsAtCornerArc() {
+        let buttons = [
+            standardWindowButton(.closeButton),
+            standardWindowButton(.miniaturizeButton),
+            standardWindowButton(.zoomButton)
+        ].compactMap { $0 }
+        guard let container = buttons.first?.superview, container.frame.height > 0 else { return }
+        let arcCenter = contentView?.layer?.cornerRadius ?? 16   // 与窗口圆角同心
+        let centerSpacing: CGFloat = 23                          // Things 实测中心距
+        for (index, button) in buttons.enumerated() {
+            let origin = arcCenter - button.frame.width / 2      // 两轴同一公式 → 对称
+            let x = origin + CGFloat(index) * centerSpacing
+            let y = container.frame.height - origin - button.frame.height
+            button.setFrameOrigin(NSPoint(x: x, y: y))
+        }
+    }
+}
+
 extension Notification.Name {
     /// 侧边栏切换分区（⌘1~7）
     static let btSelectSection = Notification.Name("btSelectSection")
@@ -136,6 +195,8 @@ extension Notification.Name {
     static let btUndoDelete = Notification.Name("bt.undoDelete")
     static let btMoveSelection = Notification.Name("bt.moveSelection")
     static let btHotKeyPressed = Notification.Name("bt.hotKeyPressed")
+    static let btToggleSearch = Notification.Name("bt.toggleSearch")
+    static let btCreateInline = Notification.Name("bt.createInline")
 }
 
 /// 浮窗首次创建的桥接：SwiftUI Window scene 惰性创建，
@@ -164,6 +225,9 @@ struct BetterThingsApp: App {
         WindowGroup("Better Things") {
             ContentView(store: store)
         }
+        // 内嵌标题栏（对照设计稿/Things）：红绿灯嵌侧栏、内容直通顶部；背景可拖拽移动窗口
+        .windowStyle(.hiddenTitleBar)
+        .windowBackgroundDragBehavior(.enabled)
         .commands {
             // 从 Dock/菜单栏也能唤起快速录入（⌘N 与真实 Things 一致）
             CommandGroup(replacing: .newItem) {

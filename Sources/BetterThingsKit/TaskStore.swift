@@ -11,6 +11,10 @@ import Observation
 public final class TaskStore {
     /// 任务集合，按创建时间倒序（只读；实体就地修改经 TaskItem 自身）
     public private(set) var tasks: [TaskItem] = []
+    /// 项目集合，按创建时间正序（侧栏顺序稳定）
+    public private(set) var projects: [Project] = []
+    /// 区域集合，按创建时间正序（侧栏顺序稳定）
+    public private(set) var areas: [Area] = []
 
     private let container: ModelContainer
 
@@ -45,17 +49,19 @@ public final class TaskStore {
     }
 
     private init(configuration: ModelConfiguration) throws {
-        container = try ModelContainer(for: TaskItem.self, configurations: configuration)
+        container = try ModelContainer(
+            for: TaskItem.self, Project.self, Area.self, configurations: configuration
+        )
         load()
     }
 
-    /// 添加任务（新任务创建时间最新，重建集合后自然置顶）
+    /// 添加任务（新任务创建时间最新，重建集合后自然置顶；projectID 归属可选）
     @discardableResult
     public func add(
         title: String, note: String? = nil,
-        section: TaskSection = .inbox, dueDate: Date? = nil
+        section: TaskSection = .inbox, dueDate: Date? = nil, projectID: UUID? = nil
     ) -> TaskItem {
-        let task = TaskItem(title: title, note: note, section: section, dueDate: dueDate)
+        let task = TaskItem(title: title, note: note, section: section, dueDate: dueDate, projectID: projectID)
         context.insert(task)
         refresh()
         persist()
@@ -64,9 +70,13 @@ public final class TaskStore {
 
     // MARK: 分区查询
 
-    /// 指定分区的未完成任务（排除废纸篓；按创建时间倒序）
+    /// 指定分区的未完成任务（排除废纸篓；按创建时间倒序）。
+    /// 收件箱只收无项目归属的任务；今天/计划/随时/某天聚合含项目任务。
     public func openTasks(in section: TaskSection) -> [TaskItem] {
-        tasks.filter { $0.taskSection == section && !$0.isCompleted && !$0.isTrashed }
+        tasks.filter {
+            $0.taskSection == section && !$0.isCompleted && !$0.isTrashed
+                && (section != .inbox || $0.projectID == nil)
+        }
     }
 
     /// 日志簿：全部已完成且未删除的任务（完成时间倒序）
@@ -85,6 +95,103 @@ public final class TaskStore {
     public func move(_ task: TaskItem, to section: TaskSection) {
         guard section != .logbook, section != .trash else { return }
         task.section = section.rawValue
+        refresh()
+        persist()
+    }
+
+    // MARK: 项目与区域（新建列表菜单）
+
+    /// 新建项目（可挂区域；空名拦截在录入层）
+    @discardableResult
+    public func addProject(name: String, note: String? = nil, area: Area? = nil) -> Project {
+        let project = Project(name: name, note: note, areaID: area?.id)
+        context.insert(project)
+        refresh()
+        persist()
+        return project
+    }
+
+    /// 新建区域（空名拦截在录入层）
+    @discardableResult
+    public func addArea(name: String) -> Area {
+        let area = Area(name: name)
+        context.insert(area)
+        refresh()
+        persist()
+        return area
+    }
+
+    /// 删除项目：其任务保留，归属置空回落（不进废纸篓）
+    public func removeProject(_ project: Project) {
+        for task in tasks where task.projectID == project.id {
+            task.projectID = nil
+        }
+        context.delete(project)
+        refresh()
+        persist()
+    }
+
+    /// 删除区域：其项目保留，回落为独立项目
+    public func removeArea(_ area: Area) {
+        for project in projects where project.areaID == area.id {
+            project.areaID = nil
+        }
+        context.delete(area)
+        refresh()
+        persist()
+    }
+
+    /// 项目的未完成任务（排除废纸篓；按创建时间倒序）
+    public func openTasks(in project: Project) -> [TaskItem] {
+        tasks.filter { $0.projectID == project.id && !$0.isCompleted && !$0.isTrashed }
+    }
+
+    /// 区域下全部项目的未完成任务数（侧栏计数徽标）
+    public func openTaskCount(in area: Area) -> Int {
+        projects.filter { $0.areaID == area.id }
+            .reduce(0) { $0 + openTasks(in: $1).count }
+    }
+
+    /// 区域下的独立项目（侧栏嵌套展示顺序）
+    public func projects(in area: Area) -> [Project] {
+        projects.filter { $0.areaID == area.id }
+    }
+
+    /// 任务的项目归属（无归属返回 nil）
+    public func project(of task: TaskItem) -> Project? {
+        guard let id = task.projectID else { return nil }
+        return projects.first { $0.id == id }
+    }
+
+    // MARK: 搜索（底部工具栏 🔍）
+
+    /// 全库开放任务搜索：标题或备注包含关键字（大小写/变音不敏感），排除已完成与废纸篓
+    public func search(_ query: String) -> [TaskItem] {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+        return tasks.filter { task in
+            guard !task.isCompleted, !task.isTrashed else { return false }
+            if task.title.range(of: trimmed, options: [.caseInsensitive, .diacriticInsensitive]) != nil {
+                return true
+            }
+            return task.note?.range(of: trimmed, options: [.caseInsensitive, .diacriticInsensitive]) != nil
+        }
+    }
+
+    /// 彻底删除单个任务（仅用于未提交的空白新建草稿；正常删除走废纸篓）
+    public func deleteTask(_ task: TaskItem) {
+        context.delete(task)
+        trashedStack.removeAll { $0 == task.id }
+        refresh()
+        persist()
+    }
+
+    /// 推迟任务到明天：转入计划分区并设日期（已有日期则顺延一天；未安排则设为明天）
+    public func postpone(_ task: TaskItem) {
+        let calendar = Calendar.current
+        let base = calendar.startOfDay(for: task.dueDate ?? .now)
+        task.dueDate = calendar.date(byAdding: .day, value: 1, to: base)
+        task.section = TaskSection.upcoming.rawValue
         refresh()
         persist()
     }
@@ -140,12 +247,20 @@ public final class TaskStore {
     /// 软删除栈（最近移入废纸篓的任务 id，供 ⌘Z 恢复）
     private var trashedStack: [UUID] = []
 
-    /// 全量重载：按创建时间倒序
+    /// 全量重载：任务按创建时间倒序，项目/区域按创建时间正序
     public func refresh() {
         let descriptor = FetchDescriptor<TaskItem>(
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
         tasks = (try? context.fetch(descriptor)) ?? []
+        let projectDescriptor = FetchDescriptor<Project>(
+            sortBy: [SortDescriptor(\.createdAt, order: .forward)]
+        )
+        projects = (try? context.fetch(projectDescriptor)) ?? []
+        let areaDescriptor = FetchDescriptor<Area>(
+            sortBy: [SortDescriptor(\.createdAt, order: .forward)]
+        )
+        areas = (try? context.fetch(areaDescriptor)) ?? []
     }
 
     private func load() {
@@ -171,14 +286,14 @@ public final class TaskStore {
         // 新库文件已存在即视为已迁移，避免重复插入
         guard !FileManager.default.fileExists(atPath: newURL.path) else { return }
         guard let legacyContainer = try? ModelContainer(
-            for: TaskItem.self,
+            for: TaskItem.self, Project.self, Area.self,
             configurations: ModelConfiguration(url: legacyURL)
         ) else { return }
         let legacyContext = ModelContext(legacyContainer)
         guard let legacyTasks = try? legacyContext.fetch(FetchDescriptor<TaskItem>()),
               !legacyTasks.isEmpty else { return }
         guard let newContainer = try? ModelContainer(
-            for: TaskItem.self,
+            for: TaskItem.self, Project.self, Area.self,
             configurations: ModelConfiguration(url: newURL)
         ) else { return }
         let newContext = ModelContext(newContainer)

@@ -23,19 +23,25 @@ public final class TaskItem {
     public var section: String = TaskSection.inbox.rawValue
     /// 计划视图的日期分组依据（仅计划分区使用；nil 表示未安排）
     public var dueDate: Date? = nil
+    /// 所属项目（nil = 无项目归属；项目删除时置空回落）
+    public var projectID: UUID? = nil
     /// 删除时间（非空 = 已在废纸篓；nil = 正常集合）
     public var deletedAt: Date? = nil
 
     public init(
         title: String, note: String? = nil, createdAt: Date = .now,
-        section: TaskSection = .inbox, dueDate: Date? = nil
+        section: TaskSection = .inbox, dueDate: Date? = nil, projectID: UUID? = nil
     ) {
         self.title = title
         self.note = note
         self.createdAt = createdAt
         self.section = section.rawValue
         self.dueDate = dueDate
+        self.projectID = projectID
     }
+
+    /// 所属项目名（无归属时为 nil）
+    public var isFiledInProject: Bool { projectID != nil }
 
     /// 解析后的分区（section 原始值兜底为收件箱）
     public var taskSection: TaskSection {
