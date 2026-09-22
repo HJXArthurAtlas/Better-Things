@@ -27,6 +27,13 @@ struct QuickCaptureView: View {
         .frame(width: 460)
         .background(.bar)
         .onAppear { focused = true }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { note in
+            // orderOut 后再唤起不会触发 onAppear——窗口重新成为 key 时必须重新聚焦，
+            // 否则 ⌘N/⌥Space 唤起后键盘输入无处落地
+            guard let window = note.object as? NSWindow,
+                  window.title == Self.windowTitle else { return }
+            focused = true
+        }
         .onExitCommand { hide() }  // Esc
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { note in
             guard let window = note.object as? NSWindow,

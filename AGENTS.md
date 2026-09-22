@@ -10,6 +10,8 @@
 
 初次使用 Penpot 工具前，先调用 `penpot_high_level_overview` 了解操作方式。
 
+**数值化标准见 `specs/design-standard.md`**（配色、水印、对齐、组件规则、页面网格、机器校验清单）。改动设计稿后必须跑其中的校验清单，全部通过才算完成。
+
 ## 项目结构
 
 - `App/` — macOS SwiftUI 应用（`BetterThingsApp.swift` 入口，`ContentView.swift` 主界面）

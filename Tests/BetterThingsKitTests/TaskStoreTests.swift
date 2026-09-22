@@ -31,14 +31,16 @@ struct TaskStoreTests {
         #expect(store.tasks.map(\.title) == ["b", "c", "a"])
     }
 
-    @Test("删除任务其余保持原序（US1/AC2）")
-    func deleteRemovesOnlyTarget() throws {
+    @Test("移入废纸篓后退出开放列表且数据保留（US1/AC2）")
+    func trashMovesOutOfOpenList() throws {
         let store = try TaskStore(inMemory: true)
         let a = seed(store, "a", 100)
         seed(store, "b", 300)
         seed(store, "c", 200)
-        store.delete(a)
-        #expect(store.tasks.map(\.title) == ["b", "c"])
+        store.trash(a)
+        #expect(store.openTasks(in: .inbox).map(\.title) == ["b", "c"])
+        #expect(store.trashedTasks.map(\.title) == ["a"])
+        #expect(store.tasks.count == 3)  // 软删除：数据保留
     }
 
     @Test("就地修改在集合中反映（US1/AC3）")
@@ -51,6 +53,35 @@ struct TaskStoreTests {
         #expect(store.tasks.first?.title == "新标题")
         #expect(store.tasks.first?.note == "备注")
         #expect(store.tasks.first?.isCompleted == true)
+    }
+
+    // MARK: 分区
+
+    @Test("分区查询互不串扰（设计稿侧栏七入口）")
+    func sectionQueries() throws {
+        let store = try TaskStore(inMemory: true)
+        store.add(title: "i", section: .inbox)
+        store.add(title: "t", section: .today)
+        store.add(title: "u", section: .upcoming)
+        store.add(title: "a", section: .anytime)
+        store.add(title: "s", section: .someday)
+        #expect(store.openTasks(in: .inbox).map(\.title) == ["i"])
+        #expect(store.openTasks(in: .today).map(\.title) == ["t"])
+        #expect(store.openTasks(in: .upcoming).map(\.title) == ["u"])
+        #expect(store.openTasks(in: .anytime).map(\.title) == ["a"])
+        #expect(store.openTasks(in: .someday).map(\.title) == ["s"])
+    }
+
+    @Test("移动任务到目标分区")
+    func moveToSection() throws {
+        let store = try TaskStore(inMemory: true)
+        let task = seed(store, "m", 100)
+        store.move(task, to: .today)
+        #expect(store.openTasks(in: .inbox).isEmpty)
+        #expect(store.openTasks(in: .today).map(\.title) == ["m"])
+        // 派生视图不可作为目标
+        store.move(task, to: .logbook)
+        #expect(task.taskSection == .today)
     }
 
     // MARK: US2 — 落盘重建
@@ -71,18 +102,18 @@ struct TaskStoreTests {
         #expect(reopenedDone?.completedAt == Date(timeIntervalSince1970: 500))
     }
 
-    @Test("删除保存后重建已删（US2/AC2）")
-    func deletePersistsAcrossRebuild() throws {
+    @Test("废纸篓状态跨持久化保留（US2/AC2）")
+    func trashPersistsAcrossRebuild() throws {
         let url = temporaryStoreURL()
         let store = try TaskStore(url: url)
         let a = seed(store, "a", 100)
         seed(store, "b", 200)
-        try store.save()
-        store.delete(a)
+        store.trash(a)
         try store.save()
 
         let reopened = try TaskStore(url: url)
-        #expect(reopened.tasks.map(\.title) == ["b"])
+        #expect(reopened.openTasks(in: .inbox).map(\.title) == ["b"])
+        #expect(reopened.trashedTasks.map(\.title) == ["a"])
     }
 
     @Test("取消完成的不变量跨持久化成立（Edge）")
@@ -99,30 +130,43 @@ struct TaskStoreTests {
         #expect(reopened.tasks.first?.completedAt == nil)
     }
 
-    // MARK: 撤销删除（BT-13/FR-007）
+    // MARK: 废纸篓恢复与倾倒（BT-13/FR-007）
 
-    @Test("删除后撤销恢复原字段")
-    func undoRestoresDeletedFields() throws {
+    @Test("恢复最近移入废纸篓的任务且字段不变")
+    func restoreLastTrashedRestoresFields() throws {
         let store = try TaskStore(inMemory: true)
         let done = seed(store, "done", 100)
         done.complete(at: Date(timeIntervalSince1970: 700))
         let originalID = done.id
         seed(store, "open", 200)
-        store.delete(done)
-        #expect(store.tasks.map(\.title) == ["open"])
+        store.trash(done)
+        #expect(store.trashedTasks.map(\.title) == ["done"])
 
-        #expect(store.undoLastDelete())
-        #expect(store.tasks.first?.title == "open")  // 倒序不变
+        #expect(store.restoreLastTrashed())
         let back = store.tasks.first { $0.title == "done" }
         #expect(back?.id == originalID)
+        #expect(back?.isTrashed == false)
         #expect(back?.isCompleted == true)
         #expect(back?.completedAt == Date(timeIntervalSince1970: 700))
     }
 
-    @Test("空撤销栈返回 false")
-    func undoOnEmptyStack() throws {
+    @Test("空恢复栈返回 false")
+    func restoreOnEmptyStack() throws {
         let store = try TaskStore(inMemory: true)
-        #expect(store.undoLastDelete() == false)
+        #expect(store.restoreLastTrashed() == false)
+    }
+
+    @Test("倾倒废纸篓彻底删除全部已删任务")
+    func emptyTrashPurgesAll() throws {
+        let store = try TaskStore(inMemory: true)
+        let a = seed(store, "a", 100)
+        let b = seed(store, "b", 200)
+        let keep = seed(store, "keep", 300)
+        store.trash(a)
+        store.trash(b)
+        store.emptyTrash()
+        #expect(store.trashedTasks.isEmpty)
+        #expect(store.tasks.map(\.title) == ["keep"])
     }
 
     // MARK: 旧库迁移（BT-21）

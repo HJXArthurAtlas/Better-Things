@@ -34,6 +34,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case 51:  // ⌫ 删除选中
                 NotificationCenter.default.post(name: .btDeleteSelected, object: nil)
                 return nil
+            case 45 where event.modifierFlags.contains(.command):  // ⌘N 快速录入（拦截，避免触发新建窗口）
+                self.toggleQuickCapture()
+                return nil
             case 6 where event.modifierFlags.contains(.command):  // ⌘Z 撤销删除
                 NotificationCenter.default.post(name: .btUndoDelete, object: nil)
                 return nil
@@ -125,6 +128,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 }
 
 extension Notification.Name {
+    /// 侧边栏切换分区（⌘1~7）
+    static let btSelectSection = Notification.Name("btSelectSection")
+    /// 倾倒废纸篓（菜单栏触发）
+    static let btEmptyTrash = Notification.Name("btEmptyTrash")
     static let btDeleteSelected = Notification.Name("bt.deleteSelected")
     static let btUndoDelete = Notification.Name("bt.undoDelete")
     static let btMoveSelection = Notification.Name("bt.moveSelection")
@@ -158,12 +165,27 @@ struct BetterThingsApp: App {
             ContentView(store: store)
         }
         .commands {
-            // 从 Dock/菜单栏也能唤起快速录入
-            CommandGroup(after: .newItem) {
+            // 从 Dock/菜单栏也能唤起快速录入（⌘N 与真实 Things 一致）
+            CommandGroup(replacing: .newItem) {
                 Button("快速录入") {
                     NotificationCenter.default.post(name: .btHotKeyPressed, object: nil)
                 }
-                .keyboardShortcut("k", modifiers: [.command, .shift])
+                Button("倾倒废纸篓", role: .destructive) {
+                    NotificationCenter.default.post(name: .btEmptyTrash, object: nil)
+                }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
+                .disabled(store.trashedTasks.isEmpty)
+            }
+            CommandMenu("前往") {
+                ForEach(TaskSection.allCases, id: \.self) { section in
+                    Button(section.displayName) {
+                        NotificationCenter.default.post(
+                            name: .btSelectSection, object: nil,
+                            userInfo: ["section": section.rawValue]
+                        )
+                    }
+                    .keyboardShortcut(KeyEquivalent(Character(String(TaskSection.allCases.firstIndex(of: section)! + 1))), modifiers: .command)
+                }
             }
         }
 

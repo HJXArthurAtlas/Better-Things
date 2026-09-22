@@ -51,39 +51,81 @@ public final class TaskStore {
 
     /// 添加任务（新任务创建时间最新，重建集合后自然置顶）
     @discardableResult
-    public func add(title: String, note: String? = nil) -> TaskItem {
-        let task = TaskItem(title: title, note: note)
+    public func add(
+        title: String, note: String? = nil,
+        section: TaskSection = .inbox, dueDate: Date? = nil
+    ) -> TaskItem {
+        let task = TaskItem(title: title, note: note, section: section, dueDate: dueDate)
         context.insert(task)
         refresh()
         persist()
         return task
     }
 
-    /// 删除任务（快照入撤销栈，可 undoLastDelete 恢复）
-    public func delete(_ task: TaskItem) {
-        let snapshot = DeleteSnapshot(
-            id: task.id, title: task.title, note: task.note, createdAt: task.createdAt,
-            isCompleted: task.isCompleted, completedAt: task.completedAt
-        )
-        context.delete(task)
-        deletedStack.append(snapshot)
+    // MARK: 分区查询
+
+    /// 指定分区的未完成任务（排除废纸篓；按创建时间倒序）
+    public func openTasks(in section: TaskSection) -> [TaskItem] {
+        tasks.filter { $0.taskSection == section && !$0.isCompleted && !$0.isTrashed }
+    }
+
+    /// 日志簿：全部已完成且未删除的任务（完成时间倒序）
+    public var completedTasks: [TaskItem] {
+        tasks.filter { $0.isCompleted && !$0.isTrashed }
+            .sorted { ($0.completedAt ?? .distantPast) > ($1.completedAt ?? .distantPast) }
+    }
+
+    /// 废纸篓：全部已删除任务（删除时间倒序）
+    public var trashedTasks: [TaskItem] {
+        tasks.filter { $0.isTrashed }
+            .sorted { ($0.deletedAt ?? .distantPast) > ($1.deletedAt ?? .distantPast) }
+    }
+
+    /// 移动任务到指定分区（logbook/trash 为派生视图，不可作为目标）
+    public func move(_ task: TaskItem, to section: TaskSection) {
+        guard section != .logbook, section != .trash else { return }
+        task.section = section.rawValue
         refresh()
         persist()
     }
 
-    /// 撤销最近一次删除：按快照原样重建（含 id 与完成状态）。返回是否发生了恢复。
+    // MARK: 废纸篓（软删除）
+
+    /// 移入废纸篓（软删除；⌫ 与删除菜单走此路径，⌘Z 可恢复）
+    public func trash(_ task: TaskItem) {
+        task.trash()
+        trashedStack.append(task.id)
+        refresh()
+        persist()
+    }
+
+    /// 恢复指定任务（从废纸篓回到原分区）
+    public func restore(_ task: TaskItem) {
+        task.restore()
+        trashedStack.removeAll { $0 == task.id }
+        refresh()
+        persist()
+    }
+
+    /// 恢复最近一次移入废纸篓的任务。返回是否发生了恢复。
     @discardableResult
-    public func undoLastDelete() -> Bool {
-        guard let snapshot = deletedStack.popLast() else { return false }
-        let restored = TaskItem(title: snapshot.title, note: snapshot.note, createdAt: snapshot.createdAt)
-        restored.id = snapshot.id
-        if snapshot.isCompleted {
-            restored.complete(at: snapshot.completedAt ?? .now)
-        }
-        context.insert(restored)
+    public func restoreLastTrashed() -> Bool {
+        guard let id = trashedStack.popLast(),
+              let task = tasks.first(where: { $0.id == id }) else { return false }
+        task.restore()
         refresh()
         persist()
         return true
+    }
+
+    /// 倾倒废纸篓：彻底删除全部废纸篓任务（不可恢复）
+    public func emptyTrash() {
+        for task in trashedTasks {
+            context.delete(task)
+            trashedStack.removeAll { $0 == task.id }
+        }
+        refresh()
+        persist()
     }
 
     /// 立即落盘（属性级修改如勾选完成、编辑标题后由 UI 层调用）
@@ -95,16 +137,8 @@ public final class TaskStore {
         try? context.save()
     }
 
-    struct DeleteSnapshot {
-        let id: UUID
-        let title: String
-        let note: String?
-        let createdAt: Date
-        let isCompleted: Bool
-        let completedAt: Date?
-    }
-
-    private var deletedStack: [DeleteSnapshot] = []
+    /// 软删除栈（最近移入废纸篓的任务 id，供 ⌘Z 恢复）
+    private var trashedStack: [UUID] = []
 
     /// 全量重载：按创建时间倒序
     public func refresh() {
