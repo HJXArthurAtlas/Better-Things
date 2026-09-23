@@ -8,24 +8,14 @@ enum SidebarItem: Hashable {
     case area(UUID)
 }
 
-/// 侧边栏：分区入口 + 独立项目 + 区域（嵌套项目）+ 底部「新建列表 / 筛选」。
+/// 侧边栏：分区入口 + 独立项目 + 区域（嵌套项目）+ 底部「筛选」。
 /// 行几何对照设计稿左栏：文字 x=41、图标 16 @x16、行高 24、选中 219×24 @x10。
 struct SidebarView: View {
     let store: TaskStore
     @Binding var selection: SidebarItem
 
-    @State private var showNewListMenu = false
-    @State private var creatingList: NewListKind? = nil
-    @State private var newListName = ""
     /// 筛选菜单隐藏的可选智能列表（计划/随时/某天）
     @State private var hiddenLists: Set<TaskSection> = []
-
-    enum NewListKind {
-        case project, area
-
-        var title: String { self == .project ? "新建项目" : "新建区域" }
-        var placeholder: String { self == .project ? "项目名称" : "区域名称" }
-    }
 
     /// 底部工具栏可隐藏的智能列表
     private let hideableLists: [TaskSection] = [.upcoming, .anytime, .someday]
@@ -72,15 +62,6 @@ struct SidebarView: View {
         // padding 在 background 之前：底色全出血到窗口顶（红绿灯区同为侧栏色，无分切缝）
         .padding(.top, 60)
         .background(BT.sidebar)
-        .alert(creatingList?.title ?? "", isPresented: Binding(
-            get: { creatingList != nil },
-            set: { if !$0 { creatingList = nil } }
-        )) {
-            TextField(creatingList?.placeholder ?? "", text: $newListName)
-                .onSubmit(createList)
-            Button("创建", action: createList)
-            Button("取消", role: .cancel) {}
-        }
     }
 
     // MARK: 行
@@ -156,30 +137,10 @@ struct SidebarView: View {
         .padding(.vertical, 0.5)
     }
 
-    // MARK: 底部：新建列表 + 筛选（设计稿 新建待办14 @17,669 · 筛选14 @199,670）
+    // MARK: 底部：筛选（设计稿 筛选14 @199,670）
 
     private var bottomBar: some View {
         HStack(spacing: 0) {
-            Button {
-                showNewListMenu = true
-            } label: {
-                HStack(spacing: 7) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 14))
-                        .foregroundStyle(BT.secondary)
-                    Text("新建列表")
-                        .font(.system(size: 13))
-                        .foregroundStyle(BT.secondary)
-                }
-            }
-            .buttonStyle(.plain)
-            .popover(isPresented: $showNewListMenu, arrowEdge: .top) {
-                NewListMenu(
-                    onProject: { creatingList = .project },
-                    onArea: { creatingList = .area }
-                )
-                .presentationBackground(BT.card)
-            }
             Spacer(minLength: 0)
             filterMenu
         }
@@ -213,23 +174,5 @@ struct SidebarView: View {
         .menuIndicator(.hidden)
         .frame(width: 16)
         .help("筛选侧栏列表")
-    }
-
-    // MARK: 创建
-
-    private func createList() {
-        let name = newListName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let kind = creatingList, !name.isEmpty else {
-            creatingList = nil
-            return
-        }
-        switch kind {
-        case .project:
-            selection = .project(store.addProject(name: name).id)
-        case .area:
-            selection = .area(store.addArea(name: name).id)
-        }
-        newListName = ""
-        creatingList = nil
     }
 }

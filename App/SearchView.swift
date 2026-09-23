@@ -1,13 +1,11 @@
 import SwiftUI
 import BetterThingsKit
 
-/// 搜索模式：🔍 进入，跨全库（标题/备注）搜索开放任务；Esc 退出。
+/// 搜索模式：🔍 进入，跨全库（标题/备注）搜索开放任务。
 struct SearchView: View {
     let store: TaskStore
     @Binding var query: String
     @Binding var selectedID: UUID?
-    let onEdit: (TaskItem) -> Void
-    let onSchedule: (TaskItem) -> Void
     let onClose: () -> Void
 
     @FocusState private var fieldFocused: Bool
@@ -41,7 +39,6 @@ struct SearchView: View {
             content
         }
         .onAppear { fieldFocused = true }
-        .onExitCommand { onClose() }
     }
 
     @ViewBuilder private var content: some View {
@@ -53,8 +50,7 @@ struct SearchView: View {
             ScrollView {
                 VStack(spacing: 0) {
                     ForEach(results, id: \.id) { task in
-                        openListRow(task, store: store, selectedID: $selectedID,
-                                    onEdit: onEdit, onSchedule: onSchedule)
+                        openListRow(task, store: store, selectedID: $selectedID)
                     }
                 }
                 .padding(.horizontal, 24)

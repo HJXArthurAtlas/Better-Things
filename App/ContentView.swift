@@ -7,13 +7,10 @@ struct ContentView: View {
 
     @State private var selection: SidebarItem = .section(.inbox)
     @State private var selectedID: UUID?
-    @State private var editingTask: TaskItem?
     @State private var searchActive = false
     @State private var searchQuery = ""
-    @State private var schedulingTask: TaskItem?
-    /// 内联新建草稿 id（⊕/⌘N → 列表顶部直接展开空卡片）
+    /// 内联新建草稿 id（⊕ → 列表顶部直接展开空卡片）
     @State private var draftID: UUID?
-    @Environment(\.openWindow) private var openWindow
 
     /// 展开卡片是否可见（开放列表 + 有选中）：驱动内容区压暗
     private var cardExpanded: Bool {
@@ -30,22 +27,6 @@ struct ContentView: View {
         return store.tasks.first { $0.id == selectedID }
     }
 
-    /// 键盘 ↑↓ 的可见范围（搜索时为搜索结果）
-    private var visibleIDs: [UUID] {
-        if searchActive { return store.search(searchQuery).map(\.id) }
-        switch selection {
-        case .section(.logbook): return store.completedTasks.map(\.id)
-        case .section(.trash): return store.trashedTasks.map(\.id)
-        case .section(let section): return store.openTasks(in: section).map(\.id)
-        case .project(let id):
-            guard let project = store.projects.first(where: { $0.id == id }) else { return [] }
-            return store.openTasks(in: project).map(\.id)
-        case .area(let id):
-            guard let area = store.areas.first(where: { $0.id == id }) else { return [] }
-            return store.projects(in: area).flatMap { store.openTasks(in: $0) }.map(\.id)
-        }
-    }
-
     var body: some View {
         HStack(spacing: 0) {
             SidebarView(store: store, selection: $selection)
@@ -58,7 +39,6 @@ struct ContentView: View {
                 MainToolbar(
                     hasSelection: selectedTask != nil,
                     onNew: startInlineCreation,
-                    onCalendar: openSchedulePopover,
                     onPostpone: postponeSelected,
                     onSearch: { searchActive = true },
                     onTrash: trashSelected,
@@ -72,14 +52,7 @@ struct ContentView: View {
         .ignoresSafeArea(.container, edges: .top)
         .background(BT.content)
         .onAppear {
-            QuickWindowRouter.open = { openWindow(id: "quick-capture") }
             Self.applyWindowChrome(retries: 8)
-        }
-        .sheet(item: $editingTask) { task in
-            EditTaskSheet(task: task) {
-                try? store.save()
-                editingTask = nil
-            }
         }
         .onChange(of: selection) { _, _ in
             endDraft()
@@ -92,19 +65,6 @@ struct ContentView: View {
         .onChange(of: searchActive) { _, active in
             if !active { searchQuery = ""; selectedID = nil }
         }
-        .popover(item: $schedulingTask, arrowEdge: .bottom) { task in
-            SchedulePopover(store: store, task: task) { schedulingTask = nil }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .btDeleteSelected)) { _ in
-            trashSelected()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .btUndoDelete)) { _ in
-            _ = store.restoreLastTrashed()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .btMoveSelection)) { note in
-            guard let delta = note.userInfo?["delta"] as? Int else { return }
-            moveSelection(delta)
-        }
         .onReceive(NotificationCenter.default.publisher(for: .btSelectSection)) { note in
             guard let raw = note.userInfo?["section"] as? String,
                   let target = TaskSection(rawValue: raw) else { return }
@@ -112,12 +72,6 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .btEmptyTrash)) { _ in
             store.emptyTrash()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .btToggleSearch)) { _ in
-            searchActive.toggle()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .btCreateInline)) { _ in
-            startInlineCreation()
         }
     }
 
@@ -127,8 +81,6 @@ struct ContentView: View {
         if searchActive {
             SearchView(
                 store: store, query: $searchQuery, selectedID: $selectedID,
-                onEdit: { editingTask = $0 },
-                onSchedule: { schedulingTask = $0 },
                 onClose: { searchActive = false }
             )
         } else {
@@ -138,22 +90,19 @@ struct ContentView: View {
                 case .inbox, .today, .anytime, .someday:
                     TaskListView(
                         store: store, section: section, selectedID: $selectedID,
-                        onEdit: { editingTask = $0 }, onSchedule: { schedulingTask = $0 },
                         draftID: draftID, onEndDraft: endDraft
                     )
                 case .upcoming:
-                    UpcomingView(store: store, selectedID: $selectedID, onEdit: { editingTask = $0 })
+                    UpcomingView(store: store, selectedID: $selectedID)
                 case .logbook:
-                    LogbookView(store: store, selectedID: $selectedID, onEdit: { editingTask = $0 })
+                    LogbookView(store: store, selectedID: $selectedID)
                 case .trash:
-                    TrashView(store: store, selectedID: $selectedID, onEdit: { editingTask = $0 })
+                    TrashView(store: store, selectedID: $selectedID)
                 }
             case .project(let id):
                 if let project = store.projects.first(where: { $0.id == id }) {
                     ProjectPageView(
                         store: store, project: project, selectedID: $selectedID,
-                        onEdit: { editingTask = $0 },
-                        onSchedule: { schedulingTask = $0 },
                         onRemoveProject: removeProject,
                         draftID: draftID, onEndDraft: endDraft
                     )
@@ -162,8 +111,6 @@ struct ContentView: View {
                 if let area = store.areas.first(where: { $0.id == id }) {
                     AreaPageView(
                         store: store, area: area, selectedID: $selectedID,
-                        onEdit: { editingTask = $0 },
-                        onSchedule: { schedulingTask = $0 },
                         onRemoveArea: removeArea,
                         draftID: draftID, onEndDraft: endDraft
                     )
@@ -184,7 +131,6 @@ struct ContentView: View {
                         }
                     }
                 }
-                Button("编辑") { selectedTask.map { editingTask = $0 } }
             }
         )
     }
@@ -215,7 +161,7 @@ struct ContentView: View {
         }
     }
 
-    /// ⊕/⌘N：当前列表顶部直接展开空卡片（对照 Things 新建待办；⌥Space 仍是全局浮窗）
+    /// ⊕：当前列表顶部直接展开空卡片（对照 Things 新建待办）
     private func startInlineCreation() {
         endDraft()
         if searchActive { searchActive = false }
@@ -250,10 +196,6 @@ struct ContentView: View {
         }
     }
 
-    private func openSchedulePopover() {
-        schedulingTask = selectedTask
-    }
-
     private func postponeSelected() {
         guard let task = selectedTask else { return }
         store.postpone(task)
@@ -279,15 +221,5 @@ struct ContentView: View {
     private func removeArea(_ area: Area) {
         store.removeArea(area)
         selection = .section(.inbox)
-    }
-
-    private func moveSelection(_ delta: Int) {
-        let ids = visibleIDs
-        guard !ids.isEmpty else { return }
-        guard let current = selectedID, let index = ids.firstIndex(of: current) else {
-            selectedID = ids.first
-            return
-        }
-        selectedID = ids[max(0, min(ids.count - 1, index + delta))]
     }
 }

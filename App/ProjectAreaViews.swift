@@ -1,11 +1,10 @@
 import SwiftUI
 import BetterThingsKit
 
-/// 配置好的任务行（SectionViews.makeRow 的开放列表版本，附加卡片展开与调度）。
+/// 配置好的任务行（SectionViews.makeRow 的开放列表版本，附加卡片展开）。
 @MainActor
 func openListRow(
     _ task: TaskItem, store: TaskStore, selectedID: Binding<UUID?>,
-    onEdit: @escaping (TaskItem) -> Void, onSchedule: ((TaskItem) -> Void)? = nil,
     dimmed: Bool = false, isDraft: Bool = false,
     onEndDraft: @escaping (TaskItem) -> Void = { _ in }
 ) -> some View {
@@ -18,11 +17,9 @@ func openListRow(
         onSelect: {
             withAnimation(cardAnimation) { selectedID.wrappedValue = task.id }
         },
-        onEdit: { onEdit(task) },
         onTrash: { store.trash(task) },
         onRestore: { store.restore(task) },
         onMove: { store.move(task, to: $0) },
-        onSchedule: onSchedule.map { schedule in { schedule(task) } },
         onEndDraft: onEndDraft,
         onCommit: { try? store.save() }
     )
@@ -71,8 +68,6 @@ struct ProjectPageView: View {
     let store: TaskStore
     let project: Project
     @Binding var selectedID: UUID?
-    let onEdit: (TaskItem) -> Void
-    let onSchedule: (TaskItem) -> Void
     let onRemoveProject: (Project) -> Void
     var draftID: UUID? = nil
     var onEndDraft: (TaskItem) -> Void = { _ in }
@@ -90,7 +85,6 @@ struct ProjectPageView: View {
                     VStack(spacing: 0) {
                         ForEach(tasks, id: \.id) { task in
                             openListRow(task, store: store, selectedID: $selectedID,
-                                        onEdit: onEdit, onSchedule: onSchedule,
                                         dimmed: selectedID != nil && task.id != selectedID,
                                         isDraft: task.id == draftID,
                                         onEndDraft: onEndDraft)
@@ -110,8 +104,6 @@ struct AreaPageView: View {
     let store: TaskStore
     let area: Area
     @Binding var selectedID: UUID?
-    let onEdit: (TaskItem) -> Void
-    let onSchedule: (TaskItem) -> Void
     let onRemoveArea: (Area) -> Void
     var draftID: UUID? = nil
     var onEndDraft: (TaskItem) -> Void = { _ in }
@@ -151,7 +143,6 @@ struct AreaPageView: View {
                             groupHeader(project.name)
                             ForEach(store.openTasks(in: project), id: \.id) { task in
                                 openListRow(task, store: store, selectedID: $selectedID,
-                                            onEdit: onEdit, onSchedule: onSchedule,
                                             dimmed: selectedID != nil && task.id != selectedID,
                                             isDraft: task.id == draftID,
                                             onEndDraft: onEndDraft)

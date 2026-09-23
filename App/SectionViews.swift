@@ -36,16 +36,15 @@ struct WatermarkView: View {
     }
 }
 
-/// 配置好的任务行（统一接线选中/编辑/删除/恢复）。
+/// 配置好的任务行（统一接线选中/删除/恢复）。
 @MainActor
 private func makeRow(
     _ task: TaskItem, store: TaskStore, selectedID: Binding<UUID?>,
     dashed: Bool = false, completedDetail: (date: String, source: String)? = nil,
-    expandable: Bool = false, onSchedule: ((TaskItem) -> Void)? = nil,
+    expandable: Bool = false,
     dimmed: Bool = false, isDraft: Bool = false,
     onEndDraft: @escaping (TaskItem) -> Void = { _ in },
-    onCommit: @escaping () -> Void = {},
-    onEdit: @escaping (TaskItem) -> Void
+    onCommit: @escaping () -> Void = {}
 ) -> some View {
     TaskRowView(
         task: task,
@@ -59,11 +58,9 @@ private func makeRow(
             // 单一事务：卡片展开与下方行下移同步（对照 Things 推开动效）
             withAnimation(cardAnimation) { selectedID.wrappedValue = task.id }
         },
-        onEdit: { onEdit(task) },
         onTrash: { store.trash(task) },
         onRestore: { store.restore(task) },
         onMove: { store.move(task, to: $0) },
-        onSchedule: onSchedule.map { schedule in { schedule(task) } },
         onEndDraft: onEndDraft,
         onCommit: onCommit
     )
@@ -79,8 +76,6 @@ struct TaskListView: View {
     let store: TaskStore
     let section: TaskSection
     @Binding var selectedID: UUID?
-    let onEdit: (TaskItem) -> Void
-    let onSchedule: (TaskItem) -> Void
     /// 新建草稿 id（nil = 无草稿）
     var draftID: UUID? = nil
     var onEndDraft: (TaskItem) -> Void = { _ in }
@@ -100,12 +95,10 @@ struct TaskListView: View {
                             ForEach(tasks, id: \.id) { task in
                                 makeRow(task, store: store, selectedID: $selectedID,
                                         dashed: section == .someday, expandable: true,
-                                        onSchedule: onSchedule,
                                         dimmed: selectedID != nil && task.id != selectedID,
                                         isDraft: task.id == draftID,
                                         onEndDraft: onEndDraft,
-                                        onCommit: { try? store.save() },
-                                        onEdit: onEdit)
+                                        onCommit: { try? store.save() })
                             }
                         }
                         .padding(.horizontal, 24)
@@ -126,7 +119,6 @@ struct TaskListView: View {
 struct UpcomingView: View {
     let store: TaskStore
     @Binding var selectedID: UUID?
-    let onEdit: (TaskItem) -> Void
 
     private var tasks: [TaskItem] { store.openTasks(in: .upcoming) }
 
@@ -190,7 +182,7 @@ struct UpcomingView: View {
                                 .padding(.horizontal, 24)
                                 .padding(.top, 4)
                             ForEach(group.items, id: \.id) { task in
-                                makeRow(task, store: store, selectedID: $selectedID, onEdit: onEdit)
+                                makeRow(task, store: store, selectedID: $selectedID)
                             }
                         }
                         .padding(.bottom, 12)
@@ -205,7 +197,6 @@ struct UpcomingView: View {
 struct LogbookView: View {
     let store: TaskStore
     @Binding var selectedID: UUID?
-    let onEdit: (TaskItem) -> Void
 
     private var groups: [(label: String, items: [TaskItem])] {
         let calendar = Calendar.current
@@ -250,7 +241,7 @@ struct LogbookView: View {
                                 .padding(.horizontal, 24)
                                 .padding(.top, 4)
                             ForEach(group.items, id: \.id) { task in
-                                makeRow(task, store: store, selectedID: $selectedID, onEdit: onEdit)
+                                makeRow(task, store: store, selectedID: $selectedID)
                             }
                         }
                         .padding(.bottom, 12)
@@ -265,14 +256,12 @@ struct LogbookView: View {
 struct TrashView: View {
     let store: TaskStore
     @Binding var selectedID: UUID?
-    let onEdit: (TaskItem) -> Void
-    @State private var confirmEmpty = false
 
     var body: some View {
         VStack(spacing: 0) {
             SectionTitleBar(section: .trash)
             Button {
-                confirmEmpty = true
+                store.emptyTrash()
             } label: {
                 Text("倾倒废纸篓")
                     .font(.system(size: 13))
@@ -285,11 +274,6 @@ struct TrashView: View {
             .disabled(store.trashedTasks.isEmpty)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 24)
-            .confirmationDialog("倾倒废纸篓", isPresented: $confirmEmpty, titleVisibility: .visible) {
-                Button("彻底删除全部废纸篓项目", role: .destructive) { store.emptyTrash() }
-            } message: {
-                Text("此操作不可撤销。")
-            }
             if store.trashedTasks.isEmpty {
                 WatermarkView(symbol: TaskSection.trash.watermarkSymbolName)
                     .frame(maxHeight: .infinity)
@@ -301,8 +285,7 @@ struct TrashView: View {
                                 task, store: store, selectedID: $selectedID,
                                 completedDetail: task.isCompleted
                                     ? (Self.dateLabel(task.deletedAt ?? .now), task.taskSection.displayName)
-                                    : nil,
-                                onEdit: onEdit
+                                    : nil
                             )
                         }
                         .padding(.top, 18)

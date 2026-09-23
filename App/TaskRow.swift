@@ -4,7 +4,7 @@ import BetterThingsKit
 /// 任务行：勾选框 13pt + 标题 16pt + 备注图标；行高 27，选中态 #3A3D3F 圆角 6。
 /// 形态对照设计稿：普通（空心圆）/ 某天（虚线圆）/ 废纸篓项目归属（两行式：蓝勾 + 日期，次行来源）。
 /// 选中且 expandable 时展开为卡片（画板「今天（卡片展开）」）：#3B3B3D 圆角 10 + 投影悬浮，
-/// 标题/备注内联可编辑、★今天调度行、右侧旗标；展开/收起 ≈0.28s spring（对照 Things 动效）。
+/// 标题/备注内联可编辑、今天/旗标指示；展开/收起 ≈0.28s spring（对照 Things 动效）。
 /// 新建草稿（isDraft）：标题占位「新的待办」、自动聚焦、空标题结束即丢弃。
 struct TaskRowView: View {
     let task: TaskItem
@@ -19,13 +19,10 @@ struct TaskRowView: View {
     var isDraft: Bool = false
     var onToggle: () -> Void = {}
     var onSelect: () -> Void = {}
-    var onEdit: () -> Void = {}
     var onTrash: () -> Void = {}
     var onRestore: () -> Void = {}
     var onMove: (TaskSection) -> Void = { _ in }
-    /// 旗标/★今天 点击 → 打开日历调度弹窗（nil = 不支持调度）
-    var onSchedule: (() -> Void)? = nil
-    /// 草稿/内联编辑结束（Esc、备注 Enter、点击空白）：空标题草稿丢弃，其余落盘
+    /// 草稿/内联编辑结束（备注 Enter、点击空白）：空标题草稿丢弃，其余落盘
     var onEndDraft: (TaskItem) -> Void = { _ in }
     /// 卡片编辑落盘（标题/备注修改后由行内提交）
     var onCommit: () -> Void = {}
@@ -45,32 +42,33 @@ struct TaskRowView: View {
     private var isExpanded: Bool { expandable && isSelected && !task.isTrashed }
 
     var body: some View {
-        if isExpanded {
-            expandedCard
-        } else {
-            compactRow
-        }
-    }
-
-    // MARK: 单行形态
-
-    private var compactRow: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        // 原地展开（对照 Things）：标题行收起/展开共用不跳位，备注与调度行渐入，
+        // 高度随 cardAnimation spring 撑开、推下下方行；展开/收起 ≈0.28s spring。
+        VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 10) {
                 checkbox
-                Text(task.title)
-                    .font(.system(size: 16))
-                    .foregroundStyle(BT.primary)
-                if hasNote, completedDetail == nil {
-                    Image(systemName: "note.text")
-                        .font(.system(size: 11))
-                        .foregroundStyle(BT.secondary)
-                }
-                Spacer(minLength: 0)
-                if let detail = completedDetail {
-                    Text(detail.date)
-                        .font(.system(size: 13))
-                        .foregroundStyle(BT.accent)
+                if isExpanded {
+                    TextField("新的待办", text: titleBinding)
+                        .textFieldStyle(.plain)
+                        .font(.system(size: 16))
+                        .foregroundStyle(BT.primary)
+                        .focused($focused, equals: .title)
+                        .onSubmit { focused = .note }
+                } else {
+                    Text(task.title)
+                        .font(.system(size: 16))
+                        .foregroundStyle(BT.primary)
+                    if hasNote, completedDetail == nil {
+                        Image(systemName: "note.text")
+                            .font(.system(size: 11))
+                            .foregroundStyle(BT.secondary)
+                    }
+                    Spacer(minLength: 0)
+                    if let detail = completedDetail {
+                        Text(detail.date)
+                            .font(.system(size: 13))
+                            .foregroundStyle(BT.accent)
+                    }
                 }
             }
             if let detail = completedDetail {
@@ -78,52 +76,20 @@ struct TaskRowView: View {
                     .font(.system(size: 13))
                     .foregroundStyle(BT.secondary)
                     .padding(.leading, 23)
+                    .padding(.top, 2)
             }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, completedDetail == nil ? 0 : 4)
-        .frame(maxWidth: .infinity, minHeight: completedDetail == nil ? 27 : 44, alignment: .leading)
-        .background {
-            RoundedRectangle(cornerRadius: 6)
-                .fill(isSelected ? BT.selected : .clear)
-        }
-        .contentShape(Rectangle())
-        .onTapGesture { onSelect() }
-        .simultaneousGesture(TapGesture(count: 2).onEnded { onEdit() })
-        .contextMenu { contextMenu }
-    }
-
-    // MARK: 展开卡片（设计稿：卡片 586×112 圆角10 #3B3B3D + 投影；标题/备注/调度行/旗标）
-
-    private var isDueToday: Bool {
-        task.dueDate.map(Calendar.current.isDateInToday) ?? false
-    }
-
-    private var expandedCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 10) {
-                checkbox
-                TextField("新的待办", text: titleBinding)
+            if isExpanded {
+                TextField("备注", text: noteBinding, axis: .vertical)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 16))
-                    .foregroundStyle(BT.primary)
-                    .focused($focused, equals: .title)
-                    .onSubmit { focused = .note }
-            }
-            TextField("备注", text: noteBinding, axis: .vertical)
-                .textFieldStyle(.plain)
-                .font(.system(size: 14))
-                .foregroundStyle(BT.secondary)
-                .lineLimit(1...4)
-                .padding(.leading, 23)
-                .padding(.top, 6)
-                .focused($focused, equals: .note)
-                .onSubmit { endDraft() }
-            HStack(spacing: 10) {
-                if isDueToday {
-                    Button {
-                        onSchedule?()
-                    } label: {
+                    .font(.system(size: 14))
+                    .foregroundStyle(BT.secondary)
+                    .lineLimit(1...4)
+                    .padding(.leading, 23)
+                    .padding(.top, 6)
+                    .focused($focused, equals: .note)
+                    .onSubmit { endDraft() }
+                HStack(spacing: 10) {
+                    if isDueToday {
                         HStack(spacing: 8) {
                             Image(systemName: "star.fill")
                                 .font(.system(size: 14))
@@ -133,45 +99,52 @@ struct TaskRowView: View {
                                 .foregroundStyle(BT.primary)
                         }
                     }
-                    .buttonStyle(.plain)
-                }
-                Spacer(minLength: 0)
-                if !task.isCompleted {
-                    Button {
-                        onSchedule?()
-                    } label: {
+                    Spacer(minLength: 0)
+                    if !task.isCompleted {
                         Image(systemName: "flag")
                             .font(.system(size: 14))
                             .foregroundStyle(task.dueDate == nil ? BT.secondary : BT.star)
                     }
-                    .buttonStyle(.plain)
-                    .help("截止日期")
                 }
+                .padding(.leading, 23)
+                .padding(.top, 8)
             }
-            .padding(.leading, 23)
-            .padding(.top, 8)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .padding(.horizontal, isExpanded ? 16 : 12)
+        .padding(.top, isExpanded ? 12 : 0)
+        .padding(.bottom, isExpanded ? 12 : (completedDetail == nil ? 0 : 4))
+        .frame(maxWidth: .infinity,
+               minHeight: isExpanded ? nil : (completedDetail == nil ? 27 : 44),
+               alignment: .leading)
         .background {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(BT.card)
-                .shadow(color: .black.opacity(0.45), radius: 10, x: 0, y: 3)
+            ZStack {
+                // 卡片背景（设计稿 #3B3B3D 圆角10 + 投影）：随展开淡入
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(BT.card)
+                    .shadow(color: .black.opacity(0.45), radius: 10, x: 0, y: 3)
+                    .opacity(isExpanded ? 1 : 0)
+                // 收起选中底（行高 27 #3A3D3F 圆角6）：随展开淡出
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(!isExpanded && isSelected ? BT.selected : .clear)
+            }
         }
         // 呼吸留白在卡片背景之外：卡缘→相邻行 ≈28pt（Things 实测 32-34 含行内空隙）
-        .padding(.vertical, 28)
+        .padding(.vertical, isExpanded ? 28 : 0)
         .contentShape(Rectangle())
         .onTapGesture { onSelect() }
-        .simultaneousGesture(TapGesture(count: 2).onEnded { onEdit() })
         .contextMenu { contextMenu }
-        .onExitCommand { endDraft() }
         .onAppear {
             revertTitle = task.title
             revertNote = task.note
             if isDraft { focused = .title }
         }
         .onChange(of: focused) { _, _ in commitEdits() }
+    }
+
+    // MARK: 调度指示
+
+    private var isDueToday: Bool {
+        task.dueDate.map(Calendar.current.isDateInToday) ?? false
     }
 
     private var titleBinding: Binding<String> {
