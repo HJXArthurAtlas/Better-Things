@@ -39,6 +39,8 @@ struct ContentView: View {
                 MainToolbar(
                     hasSelection: selectedTask != nil,
                     onNew: startInlineCreation,
+                    onUpcoming: { selection = .section(.upcoming) },
+                    onToday: { selection = .section(.today) },
                     onPostpone: postponeSelected,
                     onSearch: { searchActive = true },
                     onTrash: trashSelected,

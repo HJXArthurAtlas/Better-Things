@@ -1,13 +1,17 @@
 import SwiftUI
 import BetterThingsKit
 
-/// 主窗口底部工具栏（对照设计稿底栏）。
-/// 默认态：新建待办 · 跳转 · 搜索；选中任务态：跳转 · 废纸篓 · 更多。
-/// 图标水平间距 70pt（设计稿键位中心距 ~86pt）。
+/// 主窗口底部工具栏（设计稿 NEW-主框架「底部快捷按钮」）。
+/// 默认态四键：添加 · 计划 · 向右箭头 · 搜索，图标 14、间距 90、整体居中、距底 18。
+/// 选中任务态三键：跳转（推迟到明天）· 废纸篓 · 更多（移动到）。
 struct MainToolbar: View {
     var hasSelection: Bool = false
     var onNew: () -> Void = {}
-    /// 跳转：推迟选中任务到明天
+    /// 计划：跳转计划视图
+    var onUpcoming: () -> Void = {}
+    /// 跳转（默认态）：跳到今天
+    var onToday: () -> Void = {}
+    /// 跳转（选中态）：推迟到明天
     var onPostpone: () -> Void = {}
     var onSearch: () -> Void = {}
     var onTrash: () -> Void = {}
@@ -15,7 +19,7 @@ struct MainToolbar: View {
     var moreMenu: AnyView = AnyView(EmptyView())
 
     var body: some View {
-        HStack(spacing: 54) {
+        HStack(spacing: 90) {
             if hasSelection {
                 tool("arrow.right", "推迟到明天", action: onPostpone)
                 tool("trash", "删除", action: onTrash)
@@ -23,32 +27,30 @@ struct MainToolbar: View {
                     moreMenu
                 } label: {
                     Image(systemName: "ellipsis")
-                        .font(.system(size: 16))
+                        .font(.system(size: 14))
                         .foregroundStyle(BT.secondary)
                 }
                 .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)
-                .frame(width: 16)
                 .help("更多")
             } else {
-                tool("plus.circle", "新建待办", action: onNew)
-                tool("arrow.right", "先选择任务", disabled: true, action: onPostpone)
+                tool("plus", "新建待办", action: onNew)
+                tool("calendar", "前往计划", action: onUpcoming)
+                tool("arrow.right", "跳转到今天", action: onToday)
                 tool("magnifyingglass", "搜索", action: onSearch)
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.bottom, 12)
+        .padding(.bottom, 18)
     }
 
-    private func tool(_ symbol: String, _ help: String, disabled: Bool = false, action: @escaping () -> Void) -> some View {
+    private func tool(_ symbol: String, _ help: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 16))
+                .font(.system(size: 14))
                 .foregroundStyle(BT.secondary)
-                .opacity(disabled ? 0.4 : 1)
         }
         .buttonStyle(.plain)
-        .disabled(disabled)
         .help(help)
     }
 }

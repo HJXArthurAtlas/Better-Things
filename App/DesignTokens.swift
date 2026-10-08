@@ -6,7 +6,7 @@ import BetterThingsKit
 enum BT {
     // MARK: 配色
 
-    static let sidebar = Color(red: 0x2D / 255, green: 0x30 / 255, blue: 0x31 / 255)
+    static let sidebar = Color(red: 0x22 / 255, green: 0x22 / 255, blue: 0x22 / 255)
     static let content = Color(red: 0x2B / 255, green: 0x2D / 255, blue: 0x2D / 255)
     static let primary = Color(red: 0xE9 / 255, green: 0xE9 / 255, blue: 0xEA / 255)
     static let secondary = Color(red: 0x98 / 255, green: 0x98 / 255, blue: 0x9D / 255)
@@ -24,13 +24,21 @@ enum BT {
 
     // MARK: 尺寸
 
-    static let sidebarWidth: CGFloat = 239
+    static let sidebarWidth: CGFloat = 210
+    /// 侧栏行高与内边距（NEW-主框架：行 24、图标 16、图标-文字间距 10、文字起点 x16、高亮胶囊内缩 8）
+    static let sidebarRowHeight: CGFloat = 24
+    static let sidebarIconSize: CGFloat = 16
+    static let sidebarIconGap: CGFloat = 10
+    static let sidebarLeading: CGFloat = 16
+    static let sidebarPillInset: CGFloat = 8
     static let rowHeight: CGFloat = 27
     static let checkboxSize: CGFloat = 13
 
     /// 侧栏/页面图标（项目=圆圈、区域=盒形，对应 Penpot SF/项目、SF/区域）
     static let projectSymbol = "circle"
     static let areaSymbol = "shippingbox"
+    /// 区域展开态图标（设计稿=开盖正方体；SF Symbols 无开盖变体，以填充态区分）
+    static let areaOpenSymbol = "shippingbox.fill"
 
     /// 分区元数据：侧边栏图标（实心）、强调色（与设计稿图标库一致）
     static func sidebarSymbol(_ section: TaskSection) -> String {

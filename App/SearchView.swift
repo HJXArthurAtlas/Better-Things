@@ -14,13 +14,13 @@ struct SearchView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 10) {
+            HStack(spacing: 15) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 22))
                     .foregroundStyle(BT.secondary)
                 TextField("搜索", text: $query)
                     .textFieldStyle(.plain)
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(BT.primary)
                     .focused($fieldFocused)
                     .onSubmit { selectedID = results.first?.id }
@@ -33,8 +33,9 @@ struct SearchView: View {
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 69)
+            .padding(.leading, 55)
+            .padding(.trailing, 24)
+            .padding(.top, 72)
             .padding(.bottom, 16)
             content
         }

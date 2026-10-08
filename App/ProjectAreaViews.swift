@@ -32,13 +32,13 @@ struct ProjectHeader: View {
     let onRemove: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: 15) {
             Image(systemName: BT.projectSymbol)
                 .font(.system(size: 22))
                 .foregroundStyle(BT.accent)
             VStack(alignment: .leading, spacing: 2) {
                 Text(project.name)
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(BT.primary)
                 if let note = project.note, !note.isEmpty {
                     Text(note)
@@ -57,8 +57,9 @@ struct ProjectHeader: View {
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 69)
+        .padding(.leading, 55)
+        .padding(.trailing, 24)
+        .padding(.top, 72)
         .padding(.bottom, 16)
     }
 }
@@ -112,12 +113,12 @@ struct AreaPageView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(alignment: .top, spacing: 10) {
+            HStack(alignment: .top, spacing: 15) {
                 Image(systemName: BT.areaSymbol)
                     .font(.system(size: 22))
                     .foregroundStyle(BT.secondary)
                 Text(area.name)
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.system(size: 20, weight: .semibold))
                     .foregroundStyle(BT.primary)
                 Spacer(minLength: 0)
                 Menu {
@@ -130,8 +131,9 @@ struct AreaPageView: View {
                 .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 69)
+            .padding(.leading, 55)
+            .padding(.trailing, 24)
+            .padding(.top, 72)
             .padding(.bottom, 16)
             if projects.isEmpty {
                 WatermarkView(symbol: BT.areaSymbol)

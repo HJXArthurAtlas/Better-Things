@@ -7,17 +7,18 @@ struct SectionTitleBar: View {
     var title: String? = nil
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 15) {
             Image(systemName: section.watermarkSymbolName)
                 .font(.system(size: 22))
                 .foregroundStyle(BT.accentColor(section))
             Text(title ?? section.displayName)
-                .font(.system(size: 24, weight: .bold))
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(BT.primary)
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 69)
+        .padding(.leading, 55)
+        .padding(.trailing, 24)
+        .padding(.top, 72)
         .padding(.bottom, 16)
     }
 }
